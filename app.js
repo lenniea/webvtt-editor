@@ -11,7 +11,7 @@ if (window.NodeList && !NodeList.prototype.forEach) {
 
 function pad2(s) {return s < 10 ? '0' + s : s;}
 function secondsToTime(secs) {
-    return pad2((secs / 3600) | 0) + ':' + pad2((secs / 60) | 0) + ':' + pad2((secs % 60) | 0);
+    return pad2((secs / 3600) | 0) + ':' + pad2((secs % 3600 / 60) | 0) + ':' + pad2((secs % 60) | 0);
 }
 function generateID() {
     return Math.random().toString(36).substring(2, 15);
