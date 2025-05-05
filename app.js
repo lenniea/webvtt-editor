@@ -17,6 +17,13 @@ function secondsToTime(secs) {
 function generateID() {
     return Math.random().toString(36).substring(2, 15);
 }
+function getOptionText(s,align,size,top,left,bot,right) {
+    if (s=='TL') return ' align:'+align+' size:'+size+'% position:'+left+'% line:'+top+'%';
+    if (s=='TR') return ' align:'+align+' size:'+size+'% position:'+right+'% line:'+top+'%';
+    if (s=='BL') return ' align:'+align+' size:'+size+'% position:'+left+'% line:'+bot+'%';
+    if (s=='BR') return ' align:'+align+' size:'+size+'% position:'+right+'% line:'+bot+'%';
+    return '';
+}
 window.on('load', function() {
     var _dropTarget = document.documentElement;
     var _body = document.body;
@@ -110,18 +117,23 @@ window.on('load', function() {
     });
     $('#exportVTT').on('click', function() {
         var blob, url, link;
-        var content = 'WEBVTT';
+        var content = 'WEBVTT' +'\nLanguage: en\n';
         $('#sortCues').click();
         _cueList.filter(function(cue) {
             return (cue.start !== null && cue.end !== null);
         }).sort(function(a, b) {
             var startDiff = a.start - b.start;
-            if (startDiff === 0) {
-                return a.end - b.end;
-            }
+            if (startDiff == 0)
+                return 1;
             return startDiff;
-        }).forEach(function(cue) {
-            content += '\n\n' + secondsToTime(cue.start, true) + ' --> ' + secondsToTime(cue.end, true) + '\n' + cue.text;
+        }).forEach(function(cue,index) {
+            content += '\n\n' + secondsToTime(cue.start, true) + ' --> ' + secondsToTime(cue.end, true);
+            var posOption = $('#pos').value;
+            console.log('posOption = ' + posOption);
+            content += (index == 0) && (cue.text.length > 9)
+                        ? getOptionText(posOption,'start',25,10,0,90,70)
+                        : getOptionText(posOption,'end',4,10,30,90,100);
+            content += '\n' + cue.text;
         });
         blob = new Blob([content], {'type': 'text/vtt'});
         url = URL.createObjectURL(blob);
@@ -151,7 +163,7 @@ window.on('load', function() {
             return -1;
         }
         if (startDiff === 0) {
-            return a.end - b.end;
+            return 1;
         }
         return startDiff;
     }
