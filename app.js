@@ -129,7 +129,6 @@ window.on('load', function() {
         }).forEach(function(cue,index) {
             content += '\n\n' + secondsToTime(cue.start, true) + ' --> ' + secondsToTime(cue.end, true);
             var posOption = $('#pos').value;
-            console.log('posOption = ' + posOption);
             content += (index == 0) && (cue.text.length > 9)
                         ? getOptionText(posOption,'start',25,10,0,90,70)
                         : getOptionText(posOption,'end',5,10,30,90,100);
