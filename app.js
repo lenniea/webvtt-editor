@@ -84,7 +84,7 @@ window.on('load', function() {
             if (cue.start !== null && cue.end !== null) {
                 insertNewVTTCue(cue);
             }
-            list += '<tr><td class="id">' + (i + 1) + '</td><td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button> <button type="button" class="move down" title="Move down">&#8595;</button> <button type="button" class="move up" title="Move up">&#8593;</button> <button type="button" class="mergeUp" title="Merge with previous cue">&#8682;</button></td><td><span class="timestamp">' + (cue.start === null ? '<button type="button" class="insertTime start" title="Set current time">Set time</button></span>' : secondsToTime(cue.start) + '</span> <button type="button" class="insertTime update start" title="Set current time">&#128336;</button>') + '</td><td><span class="timestamp">' + (cue.end === null ? '<button type="button" class="insertTime end" title="Set current time">Set time</button></span>' : secondsToTime(cue.end) + '</span> <button type="button" class="insertTime update end" title="Set current time">&#128336;</button>') + '</td><td class="textinput"><textarea>' + cue.text + '</textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td><td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td></tr>';
+            list += '<tr><td class="id">' + (i + 1) + '</td><td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button><td><span class="timestamp">' + (cue.start === null ? '<button type="button" class="insertTime start" title="Set current time">Set time</button></span>' : secondsToTime(cue.start) + '</span> <button type="button" class="insertTime update start" title="Set current time">&#128336;</button>') + '</td><td><span class="timestamp">' + (cue.end === null ? '<button type="button" class="insertTime end" title="Set current time">Set time</button></span>' : secondsToTime(cue.end) + '</span> <button type="button" class="insertTime update end" title="Set current time">&#128336;</button>') + '</td><td class="textinput"><textarea>' + cue.text + '</textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td><td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td></tr>';
         });
         _cues.innerHTML = list;
         _cues.querySelectorAll('tr').forEach(function(row, i) {
@@ -110,7 +110,7 @@ window.on('load', function() {
         var id = _cueList.length;
         var entry = {'start': null, 'end': null, 'text': ''};
         _cueList.push(entry);
-        _cues.insertAdjacentHTML('beforeend', '<tr class="incomplete"><td class="id">' + (id + 1) + '</td><td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button> <button type="button" class="move down" title="Move down">&#8595;</button> <button type="button" class="move up" title="Move up">&#8593;</button> <button type="button" class="mergeUp" title="Merge with previous cue">&#8682;</button></td><td><span class="timestamp"><button type="button" class="insertTime start" title="Set current time">Set time</button></span></td><td><span class="timestamp"><button type="button" class="insertTime end" title="Set current time">Set time</button></span></td><td class="textinput"><textarea></textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td><td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td></tr>');
+        _cues.insertAdjacentHTML('beforeend', '<tr class="incomplete"><td class="id">' + (id + 1) + '</td><td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button><td><span class="timestamp"><button type="button" class="insertTime start" title="Set current time">Set time</button></span></td><td><span class="timestamp"><button type="button" class="insertTime end" title="Set current time">Set time</button></span></td><td class="textinput"><textarea></textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td><td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td></tr>');
         row = _cues.querySelector('tr:last-child');
         entry.row = row;
         _cueRows.set(row, entry);
@@ -132,7 +132,7 @@ window.on('load', function() {
             console.log('posOption = ' + posOption);
             content += (index == 0) && (cue.text.length > 9)
                         ? getOptionText(posOption,'start',25,10,0,90,70)
-                        : getOptionText(posOption,'end',4,10,30,90,100);
+                        : getOptionText(posOption,'end',5,10,30,90,100);
             content += '\n' + cue.text;
         });
         blob = new Blob([content], {'type': 'text/vtt'});
@@ -185,8 +185,6 @@ window.on('load', function() {
         var remove = element.closest('.delete-cue');
         var jump = element.closest('.jumpCue');
         var setTime = element.closest('.insertTime');
-        var move = element.closest('.move');
-        var mergeUp = element.closest('.mergeUp');
         var button = element.closest('button');
         if (button) {
             button.blur();
@@ -253,55 +251,6 @@ window.on('load', function() {
             if (was_incomplete && !is_incomplete) {
                 insertNewVTTCue(cue);
             }
-            return;
-        }
-        if (move) {
-            row = move.closest('tr');
-            cue = _cueRows.get(row);
-            id = _cueList.indexOf(cue);
-            if (move.classList.contains('up') && id > 0) {
-                temp = row.previousElementSibling;
-                temp.insertAdjacentElement('beforebegin', row);
-                cue2 = _cueRows.get(temp);
-                temp = _cueList.indexOf(cue2);
-                _cueList[id] = cue2;
-                _cueList[temp] = cue;
-                updateRowNumbers();
-            }
-            if (move.classList.contains('down') && id < (_cueList.length - 1)) {
-                temp = row.nextElementSibling;
-                temp.insertAdjacentElement('afterend', row);
-                cue2 = _cueRows.get(temp);
-                temp = _cueList.indexOf(cue2);
-                _cueList[id] = cue2;
-                _cueList[temp] = cue;
-                updateRowNumbers();
-            }
-            return;
-        }
-        if (mergeUp) {
-            row = mergeUp.closest('tr');
-            id = row.dataset.id;
-            temp = row.previousElementSibling.dataset.id;
-            cue = _cueList[temp];
-            cue2 = _cueList[id];
-            cue.text += (cue2.text ? '\n' : '') + cue2.text;
-            cue.start = cue.start === null && cue2.start === null ? null : Math.min.apply(Math, [cue.start, cue2.start].filter(function(n) { return n !== null; }));
-            cue.end = cue.end === null && cue2.end === null ? null : Math.max.apply(Math, [cue.end, cue2.end].filter(function(n) { return n !== null; }));
-            if (cue.cue_id !== undefined) {
-                temp = _track.cues.getCueById(cue.cue_id);
-                temp.text = cue.text;
-                temp.startTime = cue.start;
-                temp.endTime = cue.end;
-                reinitCues();
-            }
-            else if (cue.cue_id === undefined && cue.start !== null && cue.end !== null) {
-                insertNewVTTCue(cue);
-                reinitCues();
-            }
-            temp = row.previousElementSibling;
-            temp.querySelector('textarea').value = cue.text;
-            row.querySelector('button.delete-cue').click();
             return;
         }
     });
