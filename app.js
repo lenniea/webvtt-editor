@@ -34,6 +34,16 @@ window.on('load', function() {
     var _timer = $('#timer');
     var _progress = $('#progress');
     var _cues = $('#cues');
+    var _playPause = $('#playPause');
+    var _addCueButton = $('#addCue');
+    var _sortCuesButton = $('#sortCues');
+    var _exportVTTButton = $('#exportVTT');
+    var _posSelect = $('#pos');
+    var _previewButton = $('#previewButton');
+    var _importVideoButton = $('#importVideo');
+    var _importVideoFile = $('#importVideoFile');
+    var _importVTTButton = $('#importVTT');
+    var _importVTTFile = $('#importVTTFile');
     var _vttFilename = '';
     function skipTime(seconds) {
         _video.currentTime += seconds;
@@ -42,10 +52,10 @@ window.on('load', function() {
         if (_video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
         if (_video.paused) {
             _video.play();
-            $('#playPause').classList.remove('paused');
+            _playPause.classList.remove('paused');
         } else {
             _video.pause();
-            $('#playPause').classList.add('paused');
+            _playPause.classList.add('paused');
         }
     }
     function initVideo() {
@@ -61,7 +71,7 @@ window.on('load', function() {
             }
         });
     }
-    $('#playPause').on('click', function() {
+    _playPause.on('click', function() {
         togglePlayPause();
     });
     initVideo();
@@ -105,7 +115,7 @@ window.on('load', function() {
             });
         });
     }
-    $('#addCue').on('click', function() {
+    _addCueButton.on('click', function() {
         var row;
         var id = _cueList.length;
         var entry = {'start': null, 'end': null, 'text': ''};
@@ -115,10 +125,10 @@ window.on('load', function() {
         entry.row = row;
         _cueRows.set(row, entry);
     });
-    $('#exportVTT').on('click', function() {
+    _exportVTTButton.on('click', function() {
         var blob, url, link;
         var content = 'WEBVTT' +'\nLanguage: en\n';
-        $('#sortCues').click();
+        _sortCuesButton.click();
         _cueList.filter(function(cue) {
             return (cue.start !== null && cue.end !== null);
         }).sort(function(a, b) {
@@ -128,7 +138,7 @@ window.on('load', function() {
             return startDiff;
         }).forEach(function(cue,index) {
             content += '\n\n' + secondsToTime(cue.start, true) + ' --> ' + secondsToTime(cue.end, true);
-            var posOption = $('#pos').value;
+            var posOption = _posSelect.value;
             content += (index == 0) && (cue.text.length > 9)
                         ? getOptionText(posOption,'start',25,10,0,90,70)
                         : getOptionText(posOption,'end',5,10,30,90,100);
@@ -150,7 +160,7 @@ window.on('load', function() {
             _video.currentTime = _video.duration / 100 * clickedValue;
         }
     });
-    $('#previewButton').on('click', function() {
+    _previewButton.on('click', function() {
         document.body.classList.toggle('preview');
     });
     function sortCueList(a, b) {
@@ -166,7 +176,7 @@ window.on('load', function() {
         }
         return startDiff;
     }
-    $('#sortCues').on('click', function() {
+    _sortCuesButton.on('click', function() {
         _cueList.sort(sortCueList);
         _cueList.forEach(function(cue, i) {
             _cues.appendChild(cue.row);
@@ -298,10 +308,10 @@ window.on('load', function() {
         cue = _cueRows.get(row);
         element.parentElement.classList.toggle('changed', cue.text !== element.value);
     });
-    $('#importVideo').on('click', () => {
-        $('#importVideoFile').click();
+    _importVideoButton.on('click', () => {
+        _importVideoFile.click();
     });
-    $('#importVideoFile').on('change', function(event) {
+    _importVideoFile.on('change', function(event) {
         var file, url;
         var input = event.target;
         var files = input.files;
@@ -326,10 +336,10 @@ window.on('load', function() {
             resetFileInput(input);
         }
     });
-    $('#importVTT').on('click', function() {
-        $('#importVTTFile').click();
+    _importVTTButton.on('click', function() {
+        _importVTTFile.click();
     });
-    $('#importVTTFile').on('change', function(event) {
+    _importVTTFile.on('change', function(event) {
         var file, video, url, track;
         var input = event.target;
         var files = input.files;
@@ -407,9 +417,9 @@ window.on('load', function() {
         }
         var file = files[0];
         if (file.type.indexOf('text/') === 0) {
-            input = $('#importVTTFile');
+            input = _importVTTFile;
         } else if (file.type.indexOf('video/') === 0) {
-            input = $('#importVideoFile');
+            input = _importVideoFile;
         } else {
             return;
         }
