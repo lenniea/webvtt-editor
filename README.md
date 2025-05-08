@@ -1,7 +1,7 @@
 WebVTT Editor
 =============
 
-![screenshot] (images/icons/android-icon-192x192.png)
+![screenshot](images/icons/android-icon-192x192.png)
 
 This is a very simple editor for WebVTT subtitles.
 
