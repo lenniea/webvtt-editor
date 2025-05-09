@@ -5,16 +5,59 @@ function pad3(s: number) : string {return s < 100 ? '0' + pad2(s) : s.toString()
 function secondsToTime(s: number) {
     return pad2((s / 3600) | 0) + ':' + pad2((s % 3600 / 60) | 0) + ':' + pad2((s % 60) | 0) + '.' + pad3(((s % 1)*1000) | 0);
 }
+function padRight(s: string, n : number) : string {
+    let length : number = s.length;
+    while (length < n) {
+        s = s + ' ';
+        length = length + 1;
+    }
+    return s;
+}
+
 function generateID() : string {
     return Math.random().toString(36).substring(2, 15);
 }
-function getOptionText(s: string,align: string,size: number,top: number,left: number,bot: number,right: number) : string {
-    if (s=='TL') return ' align:'+align+' size:'+size+'% position:'+left+'% line:'+top+'%';
-    if (s=='TR') return ' align:'+align+' size:'+size+'% position:'+right+'% line:'+top+'%';
-    if (s=='BL') return ' align:'+align+' size:'+size+'% position:'+left+'% line:'+bot+'%';
-    if (s=='BR') return ' align:'+align+' size:'+size+'% position:'+right+'% line:'+bot+'%';
+
+const bullet : string = '●';
+const triangle : string = '►';
+
+function getDefaultText(sel: string)
+{
+    if (sel != 'None')
+        return bullet+bullet+' 00\n00';
     return '';
 }
+
+function getOptionText(sel: string,align: string,size: number,top: number,left: number,bot: number,right: number) : string {
+    if (sel=='TL')
+        return ' align:'+align+' size:'+size+'% position:'+left+'% line:'+top+'%';
+    if (sel=='TR')
+        return ' align:'+align+' size:'+size+'% position:'+right+'% line:'+top+'%';
+    if (sel=='BL')
+        return ' align:'+align+' size:'+size+'% position:'+left+'% line:'+bot+'%';
+    if (sel=='BR')
+        return ' align:'+align+' size:'+size+'% position:'+right+'% line:'+bot+'%';
+    return '';
+}
+
+/// test for bullet or triangle character
+function isSymbol(ch: string) : boolean
+{    
+    return ((ch == bullet) || (ch== triangle))
+}
+
+/// count leading symbols in string
+function countSymbols(s: string) : number
+{
+    let count : number = 0;
+    let i : number = 0;
+    while (s.length > i && isSymbol(s[i])) {
+        count = count + 1;
+        i = i + 1;
+    }
+    return count;
+}
+
 window.addEventListener('load', function() {
     const on = EventTarget.prototype.addEventListener;
     var _dropTarget = document.documentElement;
@@ -32,6 +75,9 @@ window.addEventListener('load', function() {
     const _sortCuesButton = $('#sortCues') as unknown as HTMLButtonElement;
     const _exportVTTButton = $('#exportVTT') as unknown as HTMLButtonElement;
     const _posSelect = $('#pos') as unknown as HTMLSelectElement;
+    const _minusButton = $('#minus') as unknown as HTMLButtonElement;
+    const _sideButton = $('#side') as unknown as HTMLButtonElement;
+    const _plusButton = $('#plus') as unknown as HTMLButtonElement;
     const _previewButton = $('#previewButton') as unknown as HTMLButtonElement;
     const _importVideoButton = $('#importVideo') as unknown as HTMLButtonElement;
     const _importVideoFile = $('#importVideoFile') as unknown as HTMLInputElement;
@@ -63,6 +109,59 @@ window.addEventListener('load', function() {
                 _progress.value = 0;
             }
         });
+    }
+    function addCueAtEnd(text: string) {
+        let id = _cueList.length as number;
+        _cues.insertAdjacentHTML('beforeend', '<tr class="incomplete"><td class="id">' + (id + 1) + '</td><td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button><td><span class="timestamp"><button type="button" class="insertTime start" title="Set current time">Set time</button></span></td><td><span class="timestamp"><button type="button" class="insertTime end" title="Set current time">Set time</button></span></td><td class="textinput"><textarea>'+text+'</textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td><td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td></tr>');
+        let row = _cues.querySelector('tr:last-child');
+        let entry = {'start': null, 'end': null, 'text': text, 'row' :id };
+        _cueList.push(entry);
+        _cueRows.set(row, entry);
+    }
+    function handleScore(delta: number) : void {
+        let end : number = _cueList.length;
+        if (end > 0) {
+            let str: string = _cueList[end - 1].text;
+            let scores: string [] = str.split('\n', 2);
+            let s1 : string = scores[0];
+            let k1 : number = countSymbols(s1);
+            let v1 : number = parseInt(s1.substring(k1));
+            let s2 : string = scores[1];
+            let k2 : number = countSymbols(s2);
+            let v2 : number = parseInt(s2.substring(k2));
+            if (delta != 0) {
+                // increase or decrease score
+                if (k1 > 0) {
+                    s1 = s1.substring(0, k1 + 1) + pad2(v1 + delta);
+                } else if (k2 > 0) {
+                    s2 = s2.substring(0, k2 + 1) + pad2(v2 + delta);
+                }
+            } else {
+                // handle side out
+                if (k1 > 0) {
+                    // sideout team #1
+                    if (k1 == 1) {
+                        s1 = s1[0] + s1;
+                    } else {
+                        s2 = s1[0] + ' ' + s2;
+                        s1 = s1.substring(k1 + 1);
+                    }
+
+                } else if (k2 > 0) {
+                    // sideout team #2
+                    if (k2 == 1) {
+                        s2 = s2[0] + s2;
+                    } else {
+                        s1 = s2[0] + ' ' + s1;
+                        s2 = s2.substring(k2 + 1);
+                    }
+                }
+            }
+            // Add new cue at end of cueList
+            let text = s1 + '\n' + s2;
+            addCueAtEnd(text);
+        }
+
     }
     _playPause.addEventListener('click', function() {
         togglePlayPause();
@@ -109,14 +208,9 @@ window.addEventListener('load', function() {
         });
     }
     _addCueButton.addEventListener('click', function() {
-        var row;
-        var id = _cueList.length;
-        var entry = {'start': null, 'end': null, 'text': '', 'row' : 0 };
-        _cueList.push(entry);
-        _cues.insertAdjacentHTML('beforeend', '<tr class="incomplete"><td class="id">' + (id + 1) + '</td><td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button><td><span class="timestamp"><button type="button" class="insertTime start" title="Set current time">Set time</button></span></td><td><span class="timestamp"><button type="button" class="insertTime end" title="Set current time">Set time</button></span></td><td class="textinput"><textarea></textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td><td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td></tr>');
-        row = _cues.querySelector('tr:last-child');
-        entry.row = row;
-        _cueRows.set(row, entry);
+        let sel : string = _posSelect.value;
+        let score : string = getDefaultText(sel);
+        addCueAtEnd(score);
     });
     _exportVTTButton.addEventListener('click', function() {
         var blob, url, link;
@@ -130,12 +224,20 @@ window.addEventListener('load', function() {
                 return 1;
             return startDiff;
         }).forEach(function(cue,index) {
+            let posOption : string = _posSelect.value;
+            let text : string = cue.text;
+            let lines : string [] = text.split('\n', 2);
+            if (posOption != 'None' && (index == 0) && lines.length == 2) {
+                lines[0] = padRight(lines[0], 30);
+                lines[1] = padRight(lines[1], 30);
+                text = lines[0] + '\n' + lines[1];
+            }
+
             content += '\n\n' + secondsToTime(cue.start) + ' --> ' + secondsToTime(cue.end);
-            var posOption = _posSelect.value;
-            content += (index == 0) && (cue.text.length > 9)
+            content += (index == 0) && (posOption != 'None')
                         ? getOptionText(posOption,'start',25,10,0,90,70)
                         : getOptionText(posOption,'end',5,10,30,90,100);
-            content += '\n' + cue.text;
+            content += '\n' + text;
         });
         blob = new Blob([content], {'type': 'text/vtt'});
         url = URL.createObjectURL(blob);
@@ -144,6 +246,16 @@ window.addEventListener('load', function() {
         link.href = url;
         link.click();
     });
+    _minusButton.addEventListener('click', function() {
+        handleScore(-1);
+    });
+    _sideButton.addEventListener('click', function() {
+        handleScore(0);
+    });
+    _plusButton.addEventListener('click', function() {
+        handleScore(+1);
+    });
+
     _progress.addEventListener('click', function(event) {
         var x = event.pageX - this.offsetLeft;
         var y = event.pageY - this.offsetTop;
