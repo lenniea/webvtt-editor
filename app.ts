@@ -1,10 +1,32 @@
 'use strict';
 
+let serves : number = 2;        // default to pickleball
+
+function round(a: number) : number { return (a + 0.5) | 0; };
+function max(a: number, b: number) : number { return a > b ? a : b; }
+function min(a: number, b: number) : number { return a < b ? a : b; }
 function pad2(s: number) : string {return s < 10 ? '0' + s : s.toString();}
 function pad3(s: number) : string {return s < 100 ? '0' + pad2(s) : s.toString();}
 function secondsToTime(s: number) {
-    return pad2((s / 3600) | 0) + ':' + pad2((s % 3600 / 60) | 0) + ':' + pad2((s % 60) | 0) + '.' + pad3(((s % 1)*1000) | 0);
+    let hh : number = s / 3600 | 0;
+    let mmss : string = pad2((s % 3600 / 60) | 0) + ':' + pad2((s % 60) | 0) + '.' + pad3(round((s % 1)*1000));
+    return (hh > 0) ? pad2(hh) + mmss : mmss;
 }
+function padLeft(s: string, n : number) : string {
+    let length : number = s.length;
+    while (length < n) {
+        s = ' ' + s;
+        length = length + 1;
+    }
+    return s;
+}
+
+function trimLeft(s: string) : string {
+    while (s.length > 0 && s[0] == ' ')
+        s = s.substring(1);
+    return s;
+}
+
 function padRight(s: string, n : number) : string {
     let length : number = s.length;
     while (length < n) {
@@ -26,6 +48,16 @@ function getDefaultText(sel: string)
     if (sel != 'None')
         return bullet+bullet+' 00\n00';
     return '';
+}
+
+function analyzeScore(s: string) : void {
+    const scores : string [] = s.split('\n', 2);
+    if (scores.length == 2) {
+        const k1 = countSymbols(scores[0]);
+        const k2 = countSymbols(scores[1]);
+        if (max(k1, k2) == 1)
+            serves = 1;
+    }
 }
 
 function getOptionText(sel: string,align: string,size: number,top: number,left: number,bot: number,right: number) : string {
@@ -60,12 +92,12 @@ function countSymbols(s: string) : number
 
 window.addEventListener('load', function() {
     const on = EventTarget.prototype.addEventListener;
-    var _dropTarget = document.documentElement;
-    var _body = document.body;
-    var _cueList = [];
-    var _cueRows = new WeakMap();
-    var _track : TextTrack = null;
-    var $ = document.querySelector.bind(document);
+    let _dropTarget = document.documentElement;
+    let _body = document.body;
+    let _cueList = [];
+    let _cueRows = new WeakMap();
+    let _track : TextTrack = null;
+    let $ = document.querySelector.bind(document);
     const _video = $('#video') as unknown as HTMLVideoElement;
     const _timer = $('#timer') as unknown as HTMLTextAreaElement;
     const _progress = $('#progress') as unknown as HTMLProgressElement;
@@ -81,9 +113,9 @@ window.addEventListener('load', function() {
     const _previewButton = $('#previewButton') as unknown as HTMLButtonElement;
     const _importVideoButton = $('#importVideo') as unknown as HTMLButtonElement;
     const _importVideoFile = $('#importVideoFile') as unknown as HTMLInputElement;
-    var _importVTTButton = $('#importVTT') as unknown as HTMLButtonElement;
-    var _importVTTFile = $('#importVTTFile') as unknown as HTMLInputElement;
-    var _vttFilename = '';
+    let _importVTTButton = $('#importVTT') as unknown as HTMLButtonElement;
+    let _importVTTFile = $('#importVTTFile') as unknown as HTMLInputElement;
+    let _vttFilename = '';
     function skipTime(seconds) {
         _video.currentTime += seconds;
     }
@@ -110,11 +142,24 @@ window.addEventListener('load', function() {
             }
         });
     }
-    function addCueAtEnd(text: string) {
-        let id = _cueList.length as number;
-        _cues.insertAdjacentHTML('beforeend', '<tr class="incomplete"><td class="id">' + (id + 1) + '</td><td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button><td><span class="timestamp"><button type="button" class="insertTime start" title="Set current time">Set time</button></span></td><td><span class="timestamp"><button type="button" class="insertTime end" title="Set current time">Set time</button></span></td><td class="textinput"><textarea>'+text+'</textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td><td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td></tr>');
+    function formatTableRow(start: number | null, end: number | null, text: string) : string {
+        const jumpStr : string = '<td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button></td>';
+        const startTime : string = (start == null) ? '<td><span class="timestamp"><button type="button" class="insertTime start" title="Set current time">Set time</button></span></td>'
+                                        : '<td>' + secondsToTime(start) + '<button type="button" class="insertTime update start" title="Set current time">&#128336;</button></td>';
+        const endTime : string = (end == null) ? '<td><span class="timestamp"><button type="button" class="insertTime end" title="Set current time">Set time</button></span></td>'
+                                  : '<td>' + secondsToTime(end) + '<button type="button" class="insertTime update end" title="Set current time">&#128336;</button></td>';
+        const textStr : string = '<td class="textinput"><textarea>'+text+'</textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td>';
+        const delStr : string = '<td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td>';
+        return jumpStr + startTime + endTime + textStr + delStr;
+    }
+    function addCueAtEnd(start: number | null, end: number | null, text: string) {
+        let id : number = _cueList.length;
+        if (id == 1)
+            analyzeScore(text); 
+        const rowStr : string = formatTableRow(start, end, text);
+        _cues.insertAdjacentHTML('beforeend', '<tr class="incomplete"><td class="id">' + (id + 1) + rowStr + '</tr>');
         let row = _cues.querySelector('tr:last-child');
-        let entry = {'start': null, 'end': null, 'text': text, 'row' :id };
+        let entry = {'start': start, 'end': end, 'text': text, 'row' :id };
         _cueList.push(entry);
         _cueRows.set(row, entry);
     }
@@ -140,26 +185,28 @@ window.addEventListener('load', function() {
                 // handle side out
                 if (k1 > 0) {
                     // sideout team #1
-                    if (k1 == 1) {
+                    if (k1 == 1 && serves==2) {
                         s1 = s1[0] + s1;
                     } else {
-                        s2 = s1[0] + ' ' + s2;
+                        s2 = s1[0] + ' ' + trimLeft(s2);
                         s1 = s1.substring(k1 + 1);
                     }
 
                 } else if (k2 > 0) {
                     // sideout team #2
-                    if (k2 == 1) {
+                    if (k2 == 1 && serves==2) {
                         s2 = s2[0] + s2;
                     } else {
-                        s1 = s2[0] + ' ' + s1;
+                        s1 = s2[0] + ' ' + trimLeft(s1);
                         s2 = s2.substring(k2 + 1);
                     }
                 }
             }
             // Add new cue at end of cueList
-            let text = s1 + '\n' + s2;
-            addCueAtEnd(text);
+            const l1 = s1.length;
+            const l2 = s2.length;
+            const text = padLeft(s1, l2) + '\n' + padLeft(s2, l1);
+            addCueAtEnd(_video.currentTime, null, text);
         }
 
     }
@@ -168,7 +215,7 @@ window.addEventListener('load', function() {
     });
     initVideo();
     function insertNewVTTCue(cue) {
-        var vtt_cue = new VTTCue(cue.start, cue.end, cue.text);
+        let vtt_cue = new VTTCue(cue.start, cue.end, cue.text);
         vtt_cue.id = generateID();
         _track.addCue(vtt_cue);
         cue.cue_id = vtt_cue.id;
@@ -181,16 +228,19 @@ window.addEventListener('load', function() {
     function writeCueList(cues) {
         _cueList = cues;
         _track = _video.addTextTrack('subtitles', 'English', 'en');
-        var list = '';
+        let list = '';
         cues.forEach(function(cue, i) {
             if (cue.start !== null && cue.end !== null) {
                 insertNewVTTCue(cue);
             }
-            list += '<tr><td class="id">' + (i + 1) + '</td><td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button><td><span class="timestamp">' + (cue.start === null ? '<button type="button" class="insertTime start" title="Set current time">Set time</button></span>' : secondsToTime(cue.start) + '</span> <button type="button" class="insertTime update start" title="Set current time">&#128336;</button>') + '</td><td><span class="timestamp">' + (cue.end === null ? '<button type="button" class="insertTime end" title="Set current time">Set time</button></span>' : secondsToTime(cue.end) + '</span> <button type="button" class="insertTime update end" title="Set current time">&#128336;</button>') + '</td><td class="textinput"><textarea>' + cue.text + '</textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td><td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td></tr>';
+            if (i == 1)
+                analyzeScore(cue.text);
+            let rowStr : string = formatTableRow(cue.start, cue.end, cue.text);
+            list += '<tr><td class="id">' + (i + 1) + '</td>' + rowStr + '</tr>';
         });
         _cues.innerHTML = list;
         _cues.querySelectorAll('tr').forEach(function(row, i) {
-            var cue = _cueList[i];
+            let cue = _cueList[i];
             _cueRows.set(row, cue);
             cue.row = row;
         });
@@ -201,8 +251,8 @@ window.addEventListener('load', function() {
             });
             if (_track.activeCues.length === 0) return;
             Array.from(_track.activeCues).forEach(function(entry: { 'id': string }) {
-                var activeID = entry.id;
-                var cue = getCueEntryByCueID(activeID);
+                let activeID = entry.id;
+                let cue = getCueEntryByCueID(activeID);
                 cue.row.classList.add('active');
             });
         });
@@ -210,38 +260,14 @@ window.addEventListener('load', function() {
     _addCueButton.addEventListener('click', function() {
         let sel : string = _posSelect.value;
         let score : string = getDefaultText(sel);
-        addCueAtEnd(score);
+        let index : number = _cueList.length;
+        addCueAtEnd(_video.currentTime, null, score);
     });
     _exportVTTButton.addEventListener('click', function() {
-        var blob, url, link;
-        var content = 'WEBVTT' +'\nLanguage: en\n';
-        _sortCuesButton.click();
-        _cueList.filter(function(cue) {
-            return (cue.start !== null && cue.end !== null);
-        }).sort(function(a, b) {
-            var startDiff = a.start - b.start;
-            if (startDiff == 0)
-                return 1;
-            return startDiff;
-        }).forEach(function(cue,index) {
-            let posOption : string = _posSelect.value;
-            let text : string = cue.text;
-            let lines : string [] = text.split('\n', 2);
-            if (posOption != 'None' && (index == 0) && lines.length == 2) {
-                lines[0] = padRight(lines[0], 30);
-                lines[1] = padRight(lines[1], 30);
-                text = lines[0] + '\n' + lines[1];
-            }
-
-            content += '\n\n' + secondsToTime(cue.start) + ' --> ' + secondsToTime(cue.end);
-            content += (index == 0) && (posOption != 'None')
-                        ? getOptionText(posOption,'start',25,10,0,90,70)
-                        : getOptionText(posOption,'end',5,10,30,90,100);
-            content += '\n' + text;
-        });
-        blob = new Blob([content], {'type': 'text/vtt'});
-        url = URL.createObjectURL(blob);
-        link = document.createElement('a');
+        let content : string = buildContent();
+        let blob : Blob = new Blob([content], {'type': 'text/vtt'});
+        let url = URL.createObjectURL(blob);
+        let link = document.createElement('a');
         link.download = _vttFilename || 'subtitles.vtt';
         link.href = url;
         link.click();
@@ -257,9 +283,9 @@ window.addEventListener('load', function() {
     });
 
     _progress.addEventListener('click', function(event) {
-        var x = event.pageX - this.offsetLeft;
-        var y = event.pageY - this.offsetTop;
-        var clickedValue = x * this.max / this.offsetWidth;
+        let x = event.pageX - this.offsetLeft;
+        let y = event.pageY - this.offsetTop;
+        let clickedValue = x * this.max / this.offsetWidth;
         if (_video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
         if (isFinite(_video.duration)) {
             _video.currentTime = _video.duration / 100 * clickedValue;
@@ -268,21 +294,64 @@ window.addEventListener('load', function() {
     _previewButton.addEventListener('click', function() {
         document.body.classList.toggle('preview');
     });
-    function sortCueList(a: { start: number; }, b: { start: number; }) {
-        var startDiff = a.start - b.start;
+    function compCues(a: { start: number; }, b: { start: number; }) {        
         if (a.start === null) {
             return 1;
         }
         if (b.start === null) {
             return -1;
         }
+        let startDiff : number = a.start - b.start;
         if (startDiff === 0) {
             return 1;
         }
         return startDiff;
     }
+    function buildContent() : string
+    {
+        _cueList.sort(compCues);
+
+        let count : number = _cueList.length;
+        // Fill in missing end times with next start time or video duration
+        _cueList.forEach(function(cue, index: number) {
+            if (cue.end == null) {
+                let time : number = index + 1 < count ? _cueList[index + 1].start : _video.duration;
+                cue.end = secondsToTime(time);
+            }
+        });
+
+        let content : string = 'WEBVTT' +'\nLanguage: en\n';
+        _cueList.forEach(function(cue,index: number) {
+            let posOption : string = _posSelect.value;
+            let text : string = cue.text;
+            const lines : string [] = text.split('\n', 2);
+            let size : number = 30;
+            let width : number = 30;
+            let option : boolean = posOption != 'None' && lines.length == 2;
+            if (option) {
+                let l1 = lines[0].length;
+                let l2 = lines[1].length;
+                if (index == 0) {
+                    lines[0] = padRight(lines[0], width);
+                    lines[1] = padRight(lines[1], width);
+                } else {
+                    size = max(l1,l2);
+                    lines[0] = padLeft(lines[0], size);
+                    lines[1] = padLeft(lines[1], size);
+                }
+                text = lines[0] + '\n' + lines[1];
+            }
+            content += '\n\n' + secondsToTime(cue.start) + ' --> ' + secondsToTime(cue.end);
+            content += (index == 0) && (posOption != 'None')
+                        ? getOptionText(posOption,'start',size,10,0,90,100 - size)
+                        : getOptionText(posOption,'end',size,10,width,90,100);
+            content += '\n' + text;
+        });
+        return content;
+    }
+
     _sortCuesButton.addEventListener('click', function() {
-        _cueList.sort(sortCueList);
+        _cueList.sort(compCues);
         _cueList.forEach(function(cue, i) {
             _cues.appendChild(cue.row);
             cue.row.querySelector('td.id').textContent = (i + 1);
@@ -294,12 +363,12 @@ window.addEventListener('load', function() {
         });
     }
     document.addEventListener('click', function(event: Event) {
-        var id, cue, cue2, row, time, timestamp, temp, was_incomplete, is_incomplete;
+        let id, cue, cue2, row, time, timestamp, temp, was_incomplete, is_incomplete;
         const element = event.target as Element;
-        var remove = element.closest('.delete-cue');
-        var jump = element.closest('.jumpCue');
-        var setTime = element.closest('.insertTime');
-        var button = element.closest('button');
+        let remove = element.closest('.delete-cue');
+        let jump = element.closest('.jumpCue');
+        let setTime = element.closest('.insertTime');
+        let button = element.closest('button');
         if (button) {
             button.blur();
         }
@@ -334,7 +403,7 @@ window.addEventListener('load', function() {
             timestamp = element.closest('td').querySelector('span.timestamp');
             if (element.classList.contains('start')) {
                 if (cue.end !== null && time > cue.end) {
-                    alert('Der Startpunkt kann nicht nach dem Ende sein.');
+                    alert('start time cannot be after end time.');
                     return;
                 }
                 if (cue.start === null) {
@@ -348,7 +417,7 @@ window.addEventListener('load', function() {
             }
             else if (element.classList.contains('end')) {
                 if (cue.start !== null && time < cue.start) {
-                    alert('Der Endpunkt kann nicht vor dem Start sein.');
+                    alert('end time cannot be before start time.');
                     return;
                 }
                 if (cue.end === null) {
@@ -393,7 +462,7 @@ window.addEventListener('load', function() {
         }
     });
     document.addEventListener('change', function(event) {
-        var content, row, cue;
+        let content, row, cue;
         const element = event.target as Element;
         if (element.nodeName === 'TEXTAREA') {
             const cell = element as HTMLTextAreaElement;
@@ -401,6 +470,9 @@ window.addEventListener('load', function() {
             row = element.closest('tr');
             cue = _cueRows.get(row);
             cue.text = content;
+            if (cue.row == 1) {
+                analyzeScore(content);
+            }
             if (cue.cue_id !== undefined) {
                 const vttcue = _track.cues.getCueById(cue.cue_id) as VTTCue;
                 vttcue.text = content;
@@ -410,7 +482,7 @@ window.addEventListener('load', function() {
         }
     });
     document.addEventListener('input', function(event: Event) {
-        var row, cue;
+        let row, cue;
         const element = event.target as Element;
         if (element.nodeName !== 'TEXTAREA')
             return;
@@ -423,9 +495,9 @@ window.addEventListener('load', function() {
         _importVideoFile.click();
     });
     _importVideoFile.addEventListener('change', function(event: InputEvent) {
-        var file, url;
+        let file, url;
         const input = event.target as undefined as DataTransfer;
-        var files = input.files;
+        let files = input.files;
         try {
             if (files.length < 1) throw new Error('no file');
             file = files[0];
@@ -451,9 +523,9 @@ window.addEventListener('load', function() {
         _importVTTFile.click();
     });
     _importVTTFile.addEventListener('change', function(event: Event) : void {
-        var file, video, url, track;
+        let file, video, url, track;
         const input = event.target as undefined as DataTransfer;
-        var files = input.files;
+        let files = input.files;
         try {
             if (files.length < 1) throw new Error('no file');
             file = files[0];
@@ -471,7 +543,8 @@ window.addEventListener('load', function() {
                 alert('Invalid VTT file.');
             });
             track.addEventListener('load', function() {
-                var list;
+                let list;
+                serves = 2;     // restore default (pickleball)
                 _cueList.forEach(function(cue) {
                     _cueRows.delete(cue.row);
                     cue.row = null;
@@ -517,8 +590,8 @@ window.addEventListener('load', function() {
     function onDrop(event: InputEvent) {
         event.preventDefault();
         onDragEnd();
-        var input : HTMLInputElement;
-        var files = event.dataTransfer.files;
+        let input : HTMLInputElement;
+        let files = event.dataTransfer.files;
         if (files.length === 0) {
             return;
         }
@@ -526,7 +599,7 @@ window.addEventListener('load', function() {
             alert('Multiple files are not supported.');
             return;
         }
-        var file = files[0];
+        let file = files[0];
         if (file.type.indexOf('text/') === 0) {
             input = _importVTTFile;
         } else if (file.type.indexOf('video/') === 0) {
@@ -535,7 +608,7 @@ window.addEventListener('load', function() {
             return;
         }
         input.files = files;
-        var myevent = new Event('change');
+        let myevent = new Event('change');
         input.dispatchEvent(myevent);
     }
     if ('serviceWorker' in navigator) {
