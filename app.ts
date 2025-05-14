@@ -144,11 +144,9 @@ window.addEventListener('load', function() {
     }
     function formatTableRow(start: number | null, end: number | null, text: string) : string {
         const jumpStr : string = '<td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button></td>';
-        const startTime : string = (start == null) ? '<td><span class="timestamp"><button type="button" class="insertTime start" title="Set current time">Set time</button></span></td>'
-                                        : '<td>' + secondsToTime(start) + '<button type="button" class="insertTime update start" title="Set current time">&#128336;</button></td>';
-        const endTime : string = (end == null) ? '<td><span class="timestamp"><button type="button" class="insertTime end" title="Set current time">Set time</button></span></td>'
-                                  : '<td>' + secondsToTime(end) + '<button type="button" class="insertTime update end" title="Set current time">&#128336;</button></td>';
-        const textStr : string = '<td class="textinput"><textarea>'+text+'</textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td>';
+        const startTime : string = '<td><span class="timestamp">' + (start === null ? '<button type="button" class="insertTime start" title="Set current time">Set time</button></span>' : secondsToTime(start) + '</span> <button type="button" class="insertTime update start" title="Set current time">&#128336;</button>') + '</td>';
+        const endTime : string = '<td><span class="timestamp">' + (end === null ? '<button type="button" class="insertTime end" title="Set current time">Set time</button></span>' : secondsToTime(end) + '</span> <button type="button" class="insertTime update end" title="Set current time">&#128336;</button>') + '</td>';
+        const textStr : string = '<td class="textinput"><textarea>' + text + '</textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td>';
         const delStr : string = '<td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td>';
         return jumpStr + startTime + endTime + textStr + delStr;
     }

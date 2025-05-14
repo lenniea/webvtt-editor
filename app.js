@@ -133,10 +133,8 @@ window.addEventListener('load', function () {
     }
     function formatTableRow(start, end, text) {
         const jumpStr = '<td><button type="button" class="jumpCue" title="Jump to cue">&#8677;</button></td>';
-        const startTime = (start == null) ? '<td><span class="timestamp"><button type="button" class="insertTime start" title="Set current time">Set time</button></span></td>'
-            : '<td>' + secondsToTime(start) + '<button type="button" class="insertTime update start" title="Set current time">&#128336;</button></td>';
-        const endTime = (end == null) ? '<td><span class="timestamp"><button type="button" class="insertTime end" title="Set current time">Set time</button></span></td>'
-            : '<td>' + secondsToTime(end) + '<button type="button" class="insertTime update end" title="Set current time">&#128336;</button></td>';
+        const startTime = '<td><span class="timestamp">' + (start === null ? '<button type="button" class="insertTime start" title="Set current time">Set time</button></span>' : secondsToTime(start) + '</span> <button type="button" class="insertTime update start" title="Set current time">&#128336;</button>') + '</td>';
+        const endTime = '<td><span class="timestamp">' + (end === null ? '<button type="button" class="insertTime end" title="Set current time">Set time</button></span>' : secondsToTime(end) + '</span> <button type="button" class="insertTime update end" title="Set current time">&#128336;</button>') + '</td>';
         const textStr = '<td class="textinput"><textarea>' + text + '</textarea><button type="button" class="apply-text" title="Apply text">&#10003;</button></td>';
         const delStr = '<td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td>';
         return jumpStr + startTime + endTime + textStr + delStr;
