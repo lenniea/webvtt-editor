@@ -43,12 +43,7 @@ function generateID() : string {
 const bullet : string = '●';
 const triangle : string = '►';
 
-function getDefaultText(sel: string)
-{
-    if (sel != 'None')
-        return bullet+bullet+' 00\n00';
-    return '';
-}
+const defaultScore : string = bullet+bullet+' 00\n   00';
 
 function analyzeScore(s: string) : void {
     const scores : string [] = s.split('\n', 2);
@@ -166,44 +161,87 @@ window.addEventListener('load', function() {
         if (end > 0) {
             let str: string = _cueList[end - 1].text;
             let scores: string [] = str.split('\n', 2);
-            let s1 : string = scores[0];
-            let k1 : number = countSymbols(s1);
-            let v1 : number = parseInt(s1.substring(k1));
-            let s2 : string = scores[1];
-            let k2 : number = countSymbols(s2);
-            let v2 : number = parseInt(s2.substring(k2));
-            if (delta != 0) {
-                // increase or decrease score
-                if (k1 > 0) {
-                    s1 = s1.substring(0, k1 + 1) + pad2(v1 + delta);
-                } else if (k2 > 0) {
-                    s2 = s2.substring(0, k2 + 1) + pad2(v2 + delta);
-                }
-            } else {
-                // handle side out
-                if (k1 > 0) {
-                    // sideout team #1
-                    if (k1 == 1 && serves==2) {
-                        s1 = s1[0] + s1;
-                    } else {
-                        s2 = s1[0] + ' ' + trimLeft(s2);
-                        s1 = s1.substring(k1 + 1);
+            if (scores.length > 1) {
+                let s1 : string = scores[0];
+                let k1 : number = countSymbols(s1);
+                let v1 : number = parseInt(s1.substring(k1));
+                let s2 : string = scores[1];
+                let k2 : number = countSymbols(s2);
+                let v2 : number = parseInt(s2.substring(k2));
+                if (delta != 0) {
+                    // increase or decrease score
+                    if (k1 > 0) {
+                        s1 = s1.substring(0, k1 + 1) + pad2(max(v1 + delta, 0));
+                    } else if (k2 > 0) {
+                        s2 = s2.substring(0, k2 + 1) + pad2(max(v2 + delta, 0));
                     }
+                } else {
+                    // handle side out
+                    if (k1 > 0) {
+                        // sideout team #1
+                        if (k1 == 1 && serves==2) {
+                            s1 = s1[0] + s1;
+                        } else {
+                            s2 = s1[0] + ' ' + trimLeft(s2);
+                            s1 = s1.substring(k1 + 1);
+                        }
 
-                } else if (k2 > 0) {
-                    // sideout team #2
-                    if (k2 == 1 && serves==2) {
-                        s2 = s2[0] + s2;
-                    } else {
-                        s1 = s2[0] + ' ' + trimLeft(s1);
-                        s2 = s2.substring(k2 + 1);
+                    } else if (k2 > 0) {
+                        // sideout team #2
+                        if (k2 == 1 && serves==2) {
+                            s2 = s2[0] + s2;
+                        } else {
+                            s1 = s2[0] + ' ' + trimLeft(s1);
+                            s2 = s2.substring(k2 + 1);
+                        }
                     }
+                }
+                // Add new cue at end of cueList
+                const l1 = s1.length;
+                const l2 = s2.length;
+                const text = padLeft(s1, l2) + '\n' + padLeft(s2, l1);
+                addCueAtEnd(_video.currentTime, null, text);
+            } else {
+                // handle single line score
+                scores = str.split('-', 3);
+                const parts : number = scores.length;
+                if (parts > 1) {
+                    let s1 : string = scores[0];
+                    let v1 : number = parseInt(s1);
+                    let s2 : string = scores[1];
+                    let v2 : number = parseInt(s2);
+                    let server : number = 1;
+                    if (parts == 3) {
+                        serves = 2;
+                        server = parseInt(scores[2]);
+                    } else {
+                        serves = 1;
+                    }
+                    if (delta != 0) {
+                        // increase or decrease server's score
+                        s1 = (v1 + delta).toString();
+                    } else {
+                        if (server < serves) {
+                            // increase server #
+                            server = server + 1;
+                        } else {
+                            // sideout swap server, receiver scores
+                            let temp = s1;
+                            s1 = s2;
+                            s2 = temp;
+                            server = 1;
+                        }
+                    }
+                    let text : string = s1 + '-' + s2;
+                    if (parts > 1) {
+                        text += '-' + server;
+                    }
+                    addCueAtEnd(_video.currentTime, null, text);
                 }
             }
-            // Add new cue at end of cueList
-            const l1 = s1.length;
-            const l2 = s2.length;
-            const text = padLeft(s1, l2) + '\n' + padLeft(s2, l1);
+        } else {
+            let sel : string = _posSelect.value;
+            let text : string = (sel != 'None') ? defaultScore : "0-0-2";
             addCueAtEnd(_video.currentTime, null, text);
         }
 
@@ -257,9 +295,9 @@ window.addEventListener('load', function() {
     }
     _addCueButton.addEventListener('click', function() {
         let sel : string = _posSelect.value;
-        let score : string = getDefaultText(sel);
         let index : number = _cueList.length;
-        addCueAtEnd(_video.currentTime, null, score);
+        let text : string = (sel == 'None') ? '' : (index == 0) ? 'Team 1\nTeam 2' : defaultScore;
+        addCueAtEnd(_video.currentTime, null, text);
     });
     _exportVTTButton.addEventListener('click', function() {
         let content : string = buildContent();
