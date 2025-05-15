@@ -135,10 +135,30 @@ window.addEventListener('load', function () {
         const delStr = '<td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td>';
         return jumpStr + startTime + endTime + textStr + delStr;
     }
+    function updateLastCue(start, end, text) {
+        const id = _cueList.length;
+        if (id > 0) {
+            let prev = _cueList[id - 1];
+            prev.start = start;
+            prev.end = end;
+            prev.text = text;
+            const rowStr = '<tr><td class="id">' + id + '</td>' + formatTableRow(start, end, text) + '</tr>';
+            const tr = _cues.querySelector('tr:last-child');
+            tr.setHTMLUnsafe(rowStr);
+        }
+    }
     function addCueAtEnd(start, end, text) {
         let id = _cueList.length;
         if (id == 1)
             analyzeScore(text);
+        if (id > 1) {
+            let prev = _cueList[id - 1];
+            if (prev.start == start) {
+                // update instead of adding row
+                updateLastCue(start, end, text);
+                return;
+            }
+        }
         const rowStr = formatTableRow(start, end, text);
         _cues.insertAdjacentHTML('beforeend', '<tr class="incomplete"><td class="id">' + (id + 1) + rowStr + '</tr>');
         let row = _cues.querySelector('tr:last-child');
@@ -147,9 +167,11 @@ window.addEventListener('load', function () {
         _cueRows.set(row, entry);
     }
     function handleScore(delta) {
+        _video.pause();
         let end = _cueList.length;
         if (end > 0) {
-            let str = _cueList[end - 1].text;
+            let prev = _cueList[end - 1];
+            let str = prev.text;
             let scores = str.split('\n', 2);
             if (scores.length > 1) {
                 let s1 = scores[0];

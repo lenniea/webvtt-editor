@@ -145,10 +145,30 @@ window.addEventListener('load', function() {
         const delStr : string = '<td><button type="button" class="delete-cue" title="Delete cue">&times;</button></td>';
         return jumpStr + startTime + endTime + textStr + delStr;
     }
+    function updateLastCue(start: number | null, end: number | null, text: string) {
+        const id : number = _cueList.length;
+        if (id > 0) {
+            let prev =_cueList[id-1];
+            prev.start = start;
+            prev.end = end;
+            prev.text = text;
+            const rowStr = '<tr><td class="id">' + id + '</td>' + formatTableRow(start, end, text) + '</tr>';
+            const tr : HTMLTableRowElement = _cues.querySelector('tr:last-child');
+            tr.setHTMLUnsafe(rowStr);
+        }
+    }
     function addCueAtEnd(start: number | null, end: number | null, text: string) {
         let id : number = _cueList.length;
         if (id == 1)
-            analyzeScore(text); 
+            analyzeScore(text);
+        if (id > 1) {
+            let prev =_cueList[id-1];
+            if (prev.start == start) {
+                // update instead of adding row
+                updateLastCue(start, end, text);
+                return;
+            }
+        }
         const rowStr : string = formatTableRow(start, end, text);
         _cues.insertAdjacentHTML('beforeend', '<tr class="incomplete"><td class="id">' + (id + 1) + rowStr + '</tr>');
         let row = _cues.querySelector('tr:last-child');
@@ -157,9 +177,11 @@ window.addEventListener('load', function() {
         _cueRows.set(row, entry);
     }
     function handleScore(delta: number) : void {
+        _video.pause();
         let end : number = _cueList.length;
         if (end > 0) {
-            let str: string = _cueList[end - 1].text;
+            let prev = _cueList[end - 1];
+            let str: string = prev.text;
             let scores: string [] = str.split('\n', 2);
             if (scores.length > 1) {
                 let s1 : string = scores[0];
@@ -388,7 +410,7 @@ window.addEventListener('load', function() {
 
     _sortCuesButton.addEventListener('click', function() {
         _cueList.sort(compCues);
-        _cueList.forEach(function(cue, i) {
+        _cueList.forEach(function(cue, i: number) {
             _cues.appendChild(cue.row);
             cue.row.querySelector('td.id').textContent = (i + 1);
         });
