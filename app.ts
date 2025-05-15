@@ -208,7 +208,7 @@ window.addEventListener('load', function() {
                         if (k2 == 1 && serves==2) {
                             s2 = s2[0] + s2;
                         } else {
-                            s1 = s2[0] + ' ' + s2.trim();
+                            s1 = s2[0] + ' ' + s1.trim();
                             s2 = s2.substring(k2 + 1);
                         }
                     }
@@ -368,8 +368,10 @@ window.addEventListener('load', function() {
         // Fill in missing end times with next start time or video duration
         _cueList.forEach(function(cue, index: number) {
             if (cue.end == null) {
-                let time : number = index + 1 < count ? _cueList[index + 1].start : _video.duration;
-                cue.end = secondsToTime(time);
+                let time : number = (index + 1 < count) ? _cueList[index + 1].start : _video.duration;
+                if (time == 0 ) 
+                    time = _video.duration;
+                cue.end = time;
             }
         });
 
