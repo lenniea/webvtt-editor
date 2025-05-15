@@ -2,6 +2,7 @@
 let serves = 2; // default to pickleball
 function round(a) { return (a + 0.5) | 0; }
 ;
+function roundBy(a, b) { return ((a + b - 1) / b | 0) * b; }
 function max(a, b) { return a > b ? a : b; }
 function min(a, b) { return a < b ? a : b; }
 function pad2(s) { return s < 10 ? '0' + s : s.toString(); }
@@ -17,11 +18,6 @@ function padLeft(s, n) {
         s = ' ' + s;
         length = length + 1;
     }
-    return s;
-}
-function trimLeft(s) {
-    while (s.length > 0 && s[0] == ' ')
-        s = s.substring(1);
     return s;
 }
 function padRight(s, n) {
@@ -197,7 +193,7 @@ window.addEventListener('load', function () {
                             s1 = s1[0] + s1;
                         }
                         else {
-                            s2 = s1[0] + ' ' + trimLeft(s2);
+                            s2 = s1[0] + ' ' + s2.trim();
                             s1 = s1.substring(k1 + 1);
                         }
                     }
@@ -207,7 +203,7 @@ window.addEventListener('load', function () {
                             s2 = s2[0] + s2;
                         }
                         else {
-                            s1 = s2[0] + ' ' + trimLeft(s1);
+                            s1 = s2[0] + ' ' + s2.trim();
                             s2 = s2.substring(k2 + 1);
                         }
                     }
@@ -375,30 +371,34 @@ window.addEventListener('load', function () {
             }
         });
         let content = 'WEBVTT' + '\nLanguage: en\n';
+        let width = 30;
         _cueList.forEach(function (cue, index) {
             let posOption = _posSelect.value;
             let text = cue.text;
             const lines = text.split('\n', 2);
-            let size = 30;
-            let width = 30;
-            let option = posOption != 'None' && lines.length == 2;
-            if (option) {
-                let l1 = lines[0].length;
-                let l2 = lines[1].length;
+            let size = 20;
+            if (lines.length == 2) {
                 if (index == 0) {
+                    lines[0] = lines[0].trim();
+                    lines[1] = lines[1].trim();
+                    width = roundBy(max(lines[0].length, lines[1].length), 5) + 10;
                     lines[0] = padRight(lines[0], width);
                     lines[1] = padRight(lines[1], width);
                 }
                 else {
-                    size = max(l1, l2);
+                    size = max(lines[0].length, lines[1].length);
                     lines[0] = padLeft(lines[0], size);
                     lines[1] = padLeft(lines[1], size);
+                    size = roundBy(size, 5);
                 }
                 text = lines[0] + '\n' + lines[1];
             }
+            else {
+                size = text.length;
+            }
             content += '\n\n' + secondsToTime(cue.start) + ' --> ' + secondsToTime(cue.end);
             content += (index == 0) && (posOption != 'None')
-                ? getOptionText(posOption, 'start', size, 10, 0, 90, 100 - size)
+                ? getOptionText(posOption, 'start', width, 10, 0, 90, 100 - width - 5)
                 : getOptionText(posOption, 'end', size, 10, width, 90, 100);
             content += '\n' + text;
         });

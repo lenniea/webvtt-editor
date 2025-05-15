@@ -3,6 +3,7 @@
 let serves : number = 2;        // default to pickleball
 
 function round(a: number) : number { return (a + 0.5) | 0; };
+function roundBy(a: number, b: number) : number { return ((a + b - 1)/ b | 0) * b; }
 function max(a: number, b: number) : number { return a > b ? a : b; }
 function min(a: number, b: number) : number { return a < b ? a : b; }
 function pad2(s: number) : string {return s < 10 ? '0' + s : s.toString();}
@@ -18,12 +19,6 @@ function padLeft(s: string, n : number) : string {
         s = ' ' + s;
         length = length + 1;
     }
-    return s;
-}
-
-function trimLeft(s: string) : string {
-    while (s.length > 0 && s[0] == ' ')
-        s = s.substring(1);
     return s;
 }
 
@@ -204,7 +199,7 @@ window.addEventListener('load', function() {
                         if (k1 == 1 && serves==2) {
                             s1 = s1[0] + s1;
                         } else {
-                            s2 = s1[0] + ' ' + trimLeft(s2);
+                            s2 = s1[0] + ' ' + s2.trim();
                             s1 = s1.substring(k1 + 1);
                         }
 
@@ -213,7 +208,7 @@ window.addEventListener('load', function() {
                         if (k2 == 1 && serves==2) {
                             s2 = s2[0] + s2;
                         } else {
-                            s1 = s2[0] + ' ' + trimLeft(s1);
+                            s1 = s2[0] + ' ' + s2.trim();
                             s2 = s2.substring(k2 + 1);
                         }
                     }
@@ -379,29 +374,32 @@ window.addEventListener('load', function() {
         });
 
         let content : string = 'WEBVTT' +'\nLanguage: en\n';
+        let width : number = 30;
         _cueList.forEach(function(cue,index: number) {
             let posOption : string = _posSelect.value;
             let text : string = cue.text;
             const lines : string [] = text.split('\n', 2);
-            let size : number = 30;
-            let width : number = 30;
-            let option : boolean = posOption != 'None' && lines.length == 2;
-            if (option) {
-                let l1 = lines[0].length;
-                let l2 = lines[1].length;
+            let size : number = 20;
+            if (lines.length == 2) {
                 if (index == 0) {
+                    lines[0] = lines[0].trim();
+                    lines[1] = lines[1].trim();
+                    width = roundBy(max(lines[0].length,lines[1].length), 5) + 10;
                     lines[0] = padRight(lines[0], width);
                     lines[1] = padRight(lines[1], width);
                 } else {
-                    size = max(l1,l2);
+                    size = max(lines[0].length,lines[1].length);
                     lines[0] = padLeft(lines[0], size);
                     lines[1] = padLeft(lines[1], size);
+                    size = roundBy(size, 5);
                 }
                 text = lines[0] + '\n' + lines[1];
+            } else {
+                size = text.length;
             }
             content += '\n\n' + secondsToTime(cue.start) + ' --> ' + secondsToTime(cue.end);
             content += (index == 0) && (posOption != 'None')
-                        ? getOptionText(posOption,'start',size,10,0,90,100 - size)
+                        ? getOptionText(posOption,'start',width,10,0,90,100 - width - 5)
                         : getOptionText(posOption,'end',size,10,width,90,100);
             content += '\n' + text;
         });
