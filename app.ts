@@ -167,7 +167,7 @@ window.addEventListener('load', function() {
         const rowStr : string = formatTableRow(start, end, text);
         _cues.insertAdjacentHTML('beforeend', '<tr class="incomplete"><td class="id">' + (id + 1) + rowStr + '</tr>');
         let row = _cues.querySelector('tr:last-child');
-        let entry = {'start': start, 'end': end, 'text': text, 'row' :id };
+        let entry = {'start': start, 'end': end, 'text': text, 'row' :row };
         _cueList.push(entry);
         _cueRows.set(row, entry);
     }
@@ -355,9 +355,6 @@ window.addEventListener('load', function() {
             return -1;
         }
         let startDiff : number = a.start - b.start;
-        if (startDiff === 0) {
-            return 1;
-        }
         return startDiff;
     }
     function buildContent() : string
