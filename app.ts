@@ -383,14 +383,14 @@ window.addEventListener('load', function() {
                 if (index == 0) {
                     lines[0] = lines[0].trim();
                     lines[1] = lines[1].trim();
-                    width = roundBy(max(lines[0].length,lines[1].length), 5) + 10;
+                    width = roundBy(max(lines[0].length,lines[1].length), 5) + 15;
                     lines[0] = padRight(lines[0], width);
                     lines[1] = padRight(lines[1], width);
                 } else {
                     size = max(lines[0].length,lines[1].length);
                     lines[0] = padLeft(lines[0], size);
                     lines[1] = padLeft(lines[1], size);
-                    size = roundBy(size, 5);
+                    size = roundBy(size * 2, 5);
                 }
                 text = lines[0] + '\n' + lines[1];
             } else {
